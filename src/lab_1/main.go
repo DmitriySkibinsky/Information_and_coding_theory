@@ -58,7 +58,7 @@ func runExperiment(n int, experimentNum int) (float64, float64, error) {
 	probJoined := "[" + strings.Join(probStrs, ", ") + "]"
 
 	// Табличный вывод
-	fmt.Printf("| %3d | %3d | %-50s | %10.4f | %10.4f |\n",
+	fmt.Printf("| %3d | %3d | %-110s | %10.4f | %10.4f |\n",
 		experimentNum, n, probJoined, avgEntropy, maxEnt)
 
 	return avgEntropy, maxEnt, nil
@@ -66,10 +66,10 @@ func runExperiment(n int, experimentNum int) (float64, float64, error) {
 
 func main() {
 	// Заголовок таблицы
-	fmt.Println("| Exp |  n  | Вероятности                                                      |  Средн. H  |  Макс. H   |")
-	fmt.Println("|-----|-----|------------------------------------------------------------------|------------|------------|")
+	fmt.Println("| Exp |  n  | Вероятности                                                                                                    |  Средн. H  |  Макс. H   |")
+	fmt.Println("|-----|-----|----------------------------------------------------------------------------------------------------------------|------------|------------|")
 
-	ns := []int{8, 8, 8, 8, 8, 8}
+	ns := []int{8, 9, 10, 11, 12, 13}
 	avgAvgEntropy := []float64{}
 	avgMaxEnt := []float64{}
 
@@ -83,5 +83,5 @@ func main() {
 
 	// Вывод списков
 	fmt.Println("\nСписок Средн. H:", stat.Mean(avgAvgEntropy, nil))
-	fmt.Println("Список Макс. H :", stat.Mean(avgMaxEnt, nil))
+
 }
