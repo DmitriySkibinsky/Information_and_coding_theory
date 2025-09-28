@@ -32,12 +32,11 @@ func generateProbCorrect(n int, start, end float64) ([]float64, error) {
 	probs := make([]float64, n)
 	for i := 0; i < n; i++ {
 		value := start + rand.Float64()*(end-start)
-		probs[i] = value // Убрано округление
+		probs[i] = value
 	}
 	return probs, nil
 }
 
-// generateConditionalMatrix создает матрицу P(X|Y)
 func generateConditionalMatrix(n int, probsRight []float64) ([][]float64, error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("размер матрицы должен быть больше 0")
@@ -46,23 +45,16 @@ func generateConditionalMatrix(n int, probsRight []float64) ([][]float64, error)
 		return nil, fmt.Errorf("длина массива probsRight должна быть равна %d", n)
 	}
 
-	// Инициализация матрицы n x n
 	matrix := make([][]float64, n)
 	for i := range matrix {
 		matrix[i] = make([]float64, n)
 	}
 
-	// Заполнение матрицы
 	for i := 0; i < n; i++ {
-		// Проверка, что вероятность безошибочной передачи в допустимом диапазоне
 		if probsRight[i] < 0 || probsRight[i] > 1 {
 			return nil, fmt.Errorf("вероятность probsRight[%d] = %f вне диапазона [0,1]", i, probsRight[i])
 		}
-
-		// Диагональный элемент P(X_i|Y_i)
 		matrix[i][i] = probsRight[i]
-
-		// Недиагональные элементы P(X_j|Y_i) для j != i
 		if n > 1 {
 			remainingProb := (1.0 - probsRight[i]) / float64(n-1)
 			for j := 0; j < n; j++ {
@@ -72,7 +64,6 @@ func generateConditionalMatrix(n int, probsRight []float64) ([][]float64, error)
 			}
 		}
 	}
-
 	return matrix, nil
 }
 
@@ -113,7 +104,7 @@ func calculateEntropy(n int, probs []float64) (float64, error) {
 	}
 	entropy := 0.0
 	for i := 0; i < n; i++ {
-		if probs[i] > 0 { // Избегаем log(0)
+		if probs[i] > 0 {
 			entropy -= probs[i] * math.Log2(probs[i])
 		}
 	}
@@ -128,7 +119,7 @@ func calculateConditionalEntropy(n int, jointMatrix [][]float64, outputProbs []f
 	entropy := 0.0
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
-			if jointMatrix[i][j] > 0 && outputProbs[j] > 0 { // Избегаем log(0) и деления на 0
+			if jointMatrix[i][j] > 0 && outputProbs[j] > 0 {
 				conditionalProb := jointMatrix[i][j] / outputProbs[j]
 				entropy -= jointMatrix[i][j] * math.Log2(conditionalProb)
 			}
@@ -137,44 +128,60 @@ func calculateConditionalEntropy(n int, jointMatrix [][]float64, outputProbs []f
 	return entropy, nil
 }
 
-func runExperement(itr, n int) {
+func runExperiment(itr, n int) {
+	// Заголовок таблицы
+	fmt.Println("+----------+---------------------+-------------------------------+------------------------------------+")
+	fmt.Println("| Итерация | Энтропия H(X), бит  | Условная энтропия H(X|Y), бит | Количество информации I(X;Y), бит  |")
+	fmt.Println("+----------+---------------------+-------------------------------+------------------------------------+")
+
+	// Выполнение итераций и сбор данных
 	for i := 0; i < itr; i++ {
 		probs, err := generateProbabilities(n)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(probs)
 
-		probs_right, err := generateProbCorrect(n, 0.7, 1)
+		probsRight, err := generateProbCorrect(n, 0.7, 1)
 		if err != nil {
 			panic(err)
 		}
-		matrix, _ := generateConditionalMatrix(n, probs_right)
-		//for i := range res {
-		//	fmt.Println(res[i])
-		//}
-		outputProbs, _ := calculateOutputProbabilities(n, probs, matrix)
-		jointProbs, _ := calculateJointProbabilityMatrix(n, outputProbs, matrix) // как часто вместе появляются входные X и выходные Y сообщения
-		fmt.Println(jointProbs)
+
+		matrix, err := generateConditionalMatrix(n, probsRight)
+		if err != nil {
+			panic(err)
+		}
+
+		outputProbs, err := calculateOutputProbabilities(n, probs, matrix)
+		if err != nil {
+			panic(err)
+		}
+
+		jointProbs, err := calculateJointProbabilityMatrix(n, outputProbs, matrix)
+		if err != nil {
+			panic(err)
+		}
+
 		entropy, err := calculateEntropy(n, probs)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("Энтропия на входе H(X) = %.4f бит\n", entropy)
 
 		conditionalEntropy, err := calculateConditionalEntropy(n, jointProbs, outputProbs)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Printf("Условная энтропия H(X|Y) = %.4f бит\n", conditionalEntropy)
-
-		fmt.Println("Количество информации при неполной достоверности сообщений ", entropy-conditionalEntropy)
+		// Форматирование строки таблицы
+		fmt.Printf("| %8d | %19.4f | %29.4f | %34.4f |\n",
+			i+1, entropy, conditionalEntropy, entropy-conditionalEntropy)
 	}
+
+	// Нижняя граница таблицы
+	fmt.Println("+----------+---------------------+-------------------------------+------------------------------------+")
 }
 
 func main() {
 	n := 53
 	itr := 6
-	runExperement(itr, n)
+	runExperiment(itr, n)
 }
