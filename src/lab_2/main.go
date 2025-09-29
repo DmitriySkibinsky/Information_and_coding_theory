@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Вероятности дискретных сообщений
 func generateProbabilities(n int) ([]float64, error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("число вероятностей должно быть больше 0")
@@ -24,6 +25,7 @@ func generateProbabilities(n int) ([]float64, error) {
 	return probs, nil
 }
 
+// Вероятности достоверности сообщения
 func generateProbCorrect(n int, start, end float64) ([]float64, error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("Число вероятностей безошибочной передачи должно быть больше 0")
@@ -37,6 +39,7 @@ func generateProbCorrect(n int, start, end float64) ([]float64, error) {
 	return probs, nil
 }
 
+// Матрица вероятностей - если на входе Xi а на выходе Yj
 func generateConditionalMatrix(n int, probsRight []float64) ([][]float64, error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("размер матрицы должен быть больше 0")
@@ -67,6 +70,7 @@ func generateConditionalMatrix(n int, probsRight []float64) ([][]float64, error)
 	return matrix, nil
 }
 
+// Вероятности появления выходных символов Xi с учётом возможных ошибок
 func calculateOutputProbabilities(n int, inputProbs []float64, condMatrix [][]float64) ([]float64, error) {
 	if n <= 0 || len(inputProbs) != n || len(condMatrix) != n || len(condMatrix[0]) != n {
 		return nil, fmt.Errorf("некорректные размеры данных")
@@ -83,6 +87,7 @@ func calculateOutputProbabilities(n int, inputProbs []float64, condMatrix [][]fl
 	return outputProbs, nil
 }
 
+// Это таблица, которая показывает, как часто конкретная пара "входной символ + выходной символ" встречается вместе.
 func calculateJointProbabilityMatrix(n int, outputProbs []float64, condMatrix [][]float64) ([][]float64, error) {
 	if n <= 0 || len(outputProbs) != n || len(condMatrix) != n || len(condMatrix[0]) != n {
 		return nil, fmt.Errorf("некорректные размеры данных")
@@ -98,6 +103,7 @@ func calculateJointProbabilityMatrix(n int, outputProbs []float64, condMatrix []
 	return jointMatrix, nil
 }
 
+// Стадартная функция энтропии
 func calculateEntropy(n int, probs []float64) (float64, error) {
 	if n <= 0 || len(probs) != n {
 		return 0, fmt.Errorf("некорректные входные данные")
@@ -111,6 +117,7 @@ func calculateEntropy(n int, probs []float64) (float64, error) {
 	return entropy, nil
 }
 
+// Условная энтропия выходного сообщения
 func calculateConditionalEntropy(n int, jointMatrix [][]float64, outputProbs []float64) (float64, error) {
 	if n <= 0 || len(jointMatrix) != n || len(jointMatrix[0]) != n || len(outputProbs) != n {
 		return 0, fmt.Errorf("некорректные размеры данных")
