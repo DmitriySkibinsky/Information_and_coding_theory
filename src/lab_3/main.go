@@ -27,8 +27,7 @@ func generateProbabilities(n int) ([]float64, error) {
 
 func CalculateEntropy(n int, probs []float64) (float64, error) {
 	if len(probs) == 0 || n <= 0 {
-		fmt.Errorf("Ошибка в входных данный")
-		return 0.0, nil
+		return 0.0, fmt.Errorf("ошибка в входных данных")
 	}
 	entropy := 0.0
 	for i := 0; i < n; i++ {
@@ -41,7 +40,7 @@ func CalculateEntropy(n int, probs []float64) (float64, error) {
 
 func generateDuration(n int, start, end float64) ([]float64, error) {
 	if n <= 0 {
-		return nil, fmt.Errorf("Число сообщений для расчета длительности должно быть больше 0")
+		return nil, fmt.Errorf("число сообщений для расчета длительности должно быть больше 0")
 	}
 	rand.Seed(time.Now().UnixNano())
 	probs := make([]float64, n)
@@ -54,25 +53,37 @@ func generateDuration(n int, start, end float64) ([]float64, error) {
 
 func generateMiddleDuration(n int, probs []float64, massiveDuraions []float64) (float64, error) {
 	if n <= 0 {
-		return 0.0, fmt.Errorf("Число сообщений для расчета средней длительности должно быть больше 0")
+		return 0.0, fmt.Errorf("число сообщений для расчета средней длительности должно быть больше 0")
 	}
-	middleDutaion := 0.0
+	middleDuration := 0.0
 	for i := 0; i < n; i++ {
-		middleDutaion += probs[i] * massiveDuraions[i]
+		middleDuration += probs[i] * massiveDuraions[i]
 	}
-	return middleDutaion, nil
+	return middleDuration, nil
 }
 
 // Вероятности достоверности сообщения
 func generateProbCorrect(n int, start, end float64) ([]float64, error) {
 	if n <= 0 {
-		return nil, fmt.Errorf("Число вероятностей безошибочной передачи должно быть больше 0")
+		return nil, fmt.Errorf("число вероятностей безошибочной передачи должно быть больше 0")
 	}
 	rand.Seed(time.Now().UnixNano())
 	probs := make([]float64, n)
 	for i := 0; i < n; i++ {
 		value := start + rand.Float64()*(end-start)
 		probs[i] = value
+	}
+	return probs, nil
+}
+
+// Вероятности без помех (все 1.0)
+func generateProbCorrectNoNoise(n int) ([]float64, error) {
+	if n <= 0 {
+		return nil, fmt.Errorf("число вероятностей безошибочной передачи должно быть больше 0")
+	}
+	probs := make([]float64, n)
+	for i := 0; i < n; i++ {
+		probs[i] = 1.0
 	}
 	return probs, nil
 }
@@ -124,8 +135,9 @@ func calculateOutputProbabilities(n int, inputProbs []float64, condMatrix [][]fl
 	}
 	return outputProbs, nil
 }
-func calculateBandwidthCapacity(n int, middleDutaion float64, conditionEntropy float64) (float64, error) {
-	return math.Log2(float64(n)-conditionEntropy) / middleDutaion, nil
+
+func calculateBandwidthCapacity(n int, middleDuration float64, conditionEntropy float64) (float64, error) {
+	return math.Log2(float64(n)-conditionEntropy) / middleDuration, nil
 }
 
 // Это таблица, которая показывает, как часто конкретная пара "входной символ + выходной символ" встречается вместе.
@@ -166,28 +178,112 @@ func calculateBaudRate(entropy float64, conditionalEntropy float64, middleDurati
 	return (entropy - conditionalEntropy) / middleDuration, nil
 }
 
+func RunTests(n int) string {
+	// Структура для хранения результатов
+	type Result struct {
+		Entropy            float64
+		ConditionalEntropy float64
+		MiddleDuration     float64
+		BandwidthCapacity  float64
+		BaudRate           float64
+	}
+
+	// Массивы для хранения результатов
+	resultsWithNoise := make([]Result, 6)
+	resultsNoNoise := make([]Result, 6)
+	q := 1 - (1 / float64(n*2))
+
+	// Тест с помехами
+	for i := 0; i < 6; i++ {
+		probs, _ := generateProbabilities(n)
+		entropy, _ := CalculateEntropy(n, probs)
+		massiveDuration, _ := generateDuration(n, 0, float64(n))
+		probsRight, _ := generateProbCorrect(n, 0, q)
+		matrix, _ := generateConditionalMatrix(n, probsRight)
+		outputProbs, _ := calculateOutputProbabilities(n, probs, matrix)
+		jointProbs, _ := calculateJointProbabilityMatrix(n, outputProbs, matrix)
+		conditionEntropy, _ := calculateConditionalEntropy(n, jointProbs, outputProbs)
+		middleDuration, _ := generateMiddleDuration(n, probs, massiveDuration)
+		bandwidthCapacity, _ := calculateBandwidthCapacity(n, middleDuration, conditionEntropy)
+		baudRate, _ := calculateBaudRate(entropy, conditionEntropy, middleDuration)
+
+		resultsWithNoise[i] = Result{
+			Entropy:            entropy,
+			ConditionalEntropy: conditionEntropy,
+			MiddleDuration:     middleDuration,
+			BandwidthCapacity:  bandwidthCapacity,
+			BaudRate:           baudRate,
+		}
+	}
+
+	// Тест без помех
+	for i := 0; i < 6; i++ {
+		probs, _ := generateProbabilities(n)
+		entropy, _ := CalculateEntropy(n, probs)
+		massiveDuration, _ := generateDuration(n, 0, float64(n))
+		probsRight, _ := generateProbCorrectNoNoise(n)
+		matrix, _ := generateConditionalMatrix(n, probsRight)
+		outputProbs, _ := calculateOutputProbabilities(n, probs, matrix)
+		jointProbs, _ := calculateJointProbabilityMatrix(n, outputProbs, matrix)
+		conditionEntropy, _ := calculateConditionalEntropy(n, jointProbs, outputProbs)
+		middleDuration, _ := generateMiddleDuration(n, probs, massiveDuration)
+		bandwidthCapacity, _ := calculateBandwidthCapacity(n, middleDuration, conditionEntropy)
+		baudRate, _ := calculateBaudRate(entropy, conditionEntropy, middleDuration)
+
+		resultsNoNoise[i] = Result{
+			Entropy:            entropy,
+			ConditionalEntropy: conditionEntropy,
+			MiddleDuration:     middleDuration,
+			BandwidthCapacity:  bandwidthCapacity,
+			BaudRate:           baudRate,
+		}
+	}
+
+	// Вычисление средних значений для канала с помехами
+	var avgBandwidthWithNoise, avgBaudRateWithNoise float64
+	for _, res := range resultsWithNoise {
+		avgBandwidthWithNoise += res.BandwidthCapacity
+		avgBaudRateWithNoise += res.BaudRate
+	}
+	avgBandwidthWithNoise /= 6.0
+	avgBaudRateWithNoise /= 6.0
+
+	// Вычисление средних значений для канала без помех
+	var avgBandwidthNoNoise, avgBaudRateNoNoise float64
+	for _, res := range resultsNoNoise {
+		avgBandwidthNoNoise += res.BandwidthCapacity
+		avgBaudRateNoNoise += res.BaudRate
+	}
+	avgBandwidthNoNoise /= 6.0
+	avgBaudRateNoNoise /= 6.0
+
+	// Формирование таблиц в формате Markdown
+	resultStr := "# Результаты тестов\n\n"
+	resultStr += fmt.Sprintf("## Тест с помехами (вероятность безошибочной передачи: [0, %.5f])\n", q)
+	resultStr += "| Эксперимент | Энтропия H(X) | Условная энтропия H(Y|X) | Средняя длительность T (с) | Пропускная способность C (бит/с) | Скорость передачи R (бит/с) |\n"
+	resultStr += "|-------------|---------------|--------------------------|---------------------------|----------------------------------|------------------------------|\n"
+	for i, res := range resultsWithNoise {
+		resultStr += fmt.Sprintf("| %11d | %13.4f | %24.4f | %25.4f | %32.4f | %28.4f |\n",
+			i+1, res.Entropy, res.ConditionalEntropy, res.MiddleDuration, res.BandwidthCapacity, res.BaudRate)
+	}
+	resultStr += fmt.Sprintf("\n**Средняя пропускная способность C (бит/с):** %.4f\n", avgBandwidthWithNoise)
+	resultStr += fmt.Sprintf("**Средняя скорость передачи R (бит/с):** %.4f\n", avgBaudRateWithNoise)
+
+	resultStr += "\n## Тест без помех (вероятность безошибочной передачи: 1.0)\n"
+	resultStr += "| Эксперимент | Энтропия H(X) | Условная энтропия H(Y|X) | Средняя длительность T (с) | Пропускная способность C (бит/с) | Скорость передачи R (бит/с) |\n"
+	resultStr += "|-------------|---------------|--------------------------|---------------------------|----------------------------------|------------------------------|\n"
+	for i, res := range resultsNoNoise {
+		resultStr += fmt.Sprintf("| %11d | %13.4f | %24.4f | %25.4f | %32.4f | %28.4f |\n",
+			i+1, res.Entropy, res.ConditionalEntropy, res.MiddleDuration, res.BandwidthCapacity, res.BaudRate)
+	}
+	resultStr += fmt.Sprintf("\n**Средняя пропускная способность C (бит/с):** %.4f\n", avgBandwidthNoNoise)
+	resultStr += fmt.Sprintf("**Средняя скорость передачи R (бит/с):** %.4f\n", avgBaudRateNoNoise)
+
+	return resultStr
+}
+
 func main() {
 	n := 16
-	//A
-	probs, _ := generateProbabilities(n)
-	entropy, _ := CalculateEntropy(n, probs)
-
-	//B
-	massiveDuration, _ := generateDuration(n, 0.5, 1.0)
-
-	//C
-	probsRight, _ := generateProbCorrect(n, 0.7, 1.0)
-	matrix, _ := generateConditionalMatrix(n, probsRight)
-	outputProbs, _ := calculateOutputProbabilities(n, probs, matrix)
-	jointProbs, _ := calculateJointProbabilityMatrix(n, outputProbs, matrix)
-
-	conditionEntropy, _ := calculateConditionalEntropy(n, jointProbs, outputProbs)
-
-	//D
-	middleDuration, _ := generateMiddleDuration(n, probs, massiveDuration)
-	bandwithCapacity, _ := calculateBandwidthCapacity(n, middleDuration, conditionEntropy)
-	baudRate, _ := calculateBaudRate(entropy, conditionEntropy, middleDuration)
-
-	fmt.Println(bandwithCapacity, baudRate)
-
+	result := RunTests(n)
+	fmt.Println(result)
 }
