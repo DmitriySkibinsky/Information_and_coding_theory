@@ -174,14 +174,14 @@ func runExperiment(exp, k int) {
 
 	// 2. Построение матриц
 	G := buildGeneratorMatrix(n, p, k)
-	//for i := range G {
-	//	fmt.Println(G[i])
-	//}
+	for i := range G {
+		fmt.Println(G[i])
+	}
 	fmt.Println()
 	H := buildParityCheckMatrix(G, n, p, k)
-	//for i := range H {
-	//	fmt.Println(H[i])
-	//}
+	for i := range H {
+		fmt.Println(H[i])
+	}
 
 	// 3. Кодирование
 	codeword := encodeMessage(infoMsg, H, n, p, k)
@@ -213,7 +213,7 @@ func runExperiment(exp, k int) {
 }
 
 func main() {
-	k := 53
+	k := 4
 	rand.Seed(time.Now().UnixNano())
 
 	fmt.Printf("Код Хэмминга: k = %d информационных битов\n", k)
