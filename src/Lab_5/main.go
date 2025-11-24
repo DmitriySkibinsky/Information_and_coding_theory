@@ -11,7 +11,7 @@ import (
 
 // === Глобальные константы и переменные ===
 // k — количество информационных бит
-const k = 9
+const k = 4
 
 // p — минимальное число проверочных бит, необходимое для кодирования k бит
 var p = minP(k)
@@ -335,7 +335,7 @@ func main() {
 			synStr += fmt.Sprintf("%d", syndrome[i])
 		}
 		fmt.Printf("Синдром (SEC): %s -> %d\n", synStr, synIndex)
-		printMatrix(H, "H")
+		printH()
 
 		fmt.Printf("\nРешение: %s\n", verdict)
 
@@ -358,7 +358,7 @@ func main() {
 
 				// Стрелка под ошибкой
 				arrow := strings.Repeat(" ", (correctedPos-1)*2) + "↑"
-				fmt.Printf("                           %s (позиция %d)\n", arrow, correctedPos)
+				fmt.Printf("                         %s (позиция %d)\n", arrow, correctedPos)
 
 				// Если ошибка была в общем паритете — отдельно укажем
 				if correctedPos == nExt {
@@ -393,4 +393,27 @@ func bitsToSpacedString(bits []int) string {
 		strs[i] = fmt.Sprintf("%d", b)
 	}
 	return strings.Join(strs, " ")
+}
+func printH() {
+	H := buildH(n, p)
+	fmt.Printf("\n             ПРОВЕРОЧНАЯ МАТРИЦА H  (%d × %d)\n", p, n)
+	fmt.Print("Позиции → ")
+	for i := 1; i <= n; i++ {
+		fmt.Printf("%2d ", i)
+	}
+	fmt.Println("\n          " + strings.Repeat("─", n*3))
+
+	for i := 0; i < p; i++ {
+		pb := 1 << i
+		fmt.Printf("  P%-2d →  ", pb)
+		for j := 0; j < n; j++ {
+			if H[i][j] == 1 {
+				fmt.Print(" 1 ")
+			} else {
+				fmt.Print(" 0 ")
+			}
+		}
+		fmt.Println()
+	}
+	fmt.Println()
 }
